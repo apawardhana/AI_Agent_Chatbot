@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sam-Cuan - Asisten Investasi</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <img src="assets/logo_untuk_chatbot_investasi_bernama_sam_cuan_yang.jpeg" alt="Logo Sam-Cuan" style="width: 100px; margin-bottom: 10px;" />
+      <h2>Sam-Cuan</h2>
+      <button id="clearChatBtn">🗑 Hapus Chat</button>
+    </aside>
+
+    <main class="chat-area">
+      <div id="chat-box" class="chat-box"></div>
+
+      <div class="input-area">
+        <button id="attachBtn">➕</button>
+        <input type="file" id="fileInput" style="display:none" />
+        <input type="text" id="pesan" placeholder="Tulis pesan..." autocomplete="off" />
+        <button onclick="kirim()">Kirim</button>
+        <button id="micBtn" style="display:none">🎤</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
