@@ -1,5 +1,13 @@
 const BACKEND_URL = "http://192.168.20.111:8000";
 
+function getSessionId() {
+ let sessionId = localStorage.getItem('sessionId');
+ if (!sessionId) {
+    sessionId = crypto.randomUUID(); // Generate a new UUID
+ localStorage.setItem('sessionId', sessionId);
+  }
+ return sessionId;
+}
 const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
 let recognition;
 if (speechSupported) {
@@ -86,13 +94,14 @@ async function kirim() {
 }
 
 async function kirimKeBackend(message, fileText) {
+  const sessionId = getSessionId();
   tampilkanTyping();
 
   try {
     const res = await fetch(`${BACKEND_URL}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, file: fileText })
+      body: JSON.stringify({ session_id: sessionId, message, file: fileText })
     });
     const data = await res.json();
     hapusTyping();
@@ -186,16 +195,18 @@ document.getElementById("pesan").addEventListener("keypress", (e) => {
 
 document.getElementById("clearChatBtn").addEventListener("click", async () => {
   if (confirm("Yakin mau hapus semua chat?")) {
+    const sessionId = getSessionId();
     try {
-      await fetch(`${BACKEND_URL}/chats`, { method: "DELETE" });
+ await fetch(`${BACKEND_URL}/chats?session_id=${sessionId}`, { method: "DELETE" });
       document.getElementById("chat-box").innerHTML = "";
     } catch (error) { // Added error parameter
       tampilkanPesan(`⚠️ Gagal menghapus chat dari server: ${error.message}`, "bot");
     }
   }
 });
-
 window.onload = async () => {
+  const sessionId = getSessionId();
+  document.getElementById("chat-box").innerHTML = ""; // Clear existing content before loading history
   try {
     const res = await fetch(`${BACKEND_URL}/chats`); // Corrected URL to use BACKEND_URL
     const data = await res.json();
