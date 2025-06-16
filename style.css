@@ -161,9 +161,17 @@ body {
   }
 
   .sidebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     width: 100%;
     box-shadow: none;
     border-bottom: 1px solid #ddd;
+    padding: 10px 20px;
+  }
+  
+  .sidebar img {
+    margin-right: 15px;
   }
 
   .input-area {

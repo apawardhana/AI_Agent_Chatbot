@@ -63,12 +63,6 @@ def format_reply_to_html(text):
 def root():
     return {"message": "OpenRouter chatbot siap bantu Bos!"}
 
-@app.post("/reset")
-def reset_chat():
-    global chat_history
-    chat_history = [{"role": "system", "content": system_prompt}]
-    return {"message": "Percakapan berhasil direset ✅"}
-
 @app.post("/chat")
 async def chat(request: Request):
     global chat_history
@@ -107,4 +101,10 @@ async def chat(request: Request):
         return {"reply": formatted_reply}
     except Exception:
         return {"reply": f"Maaf, error dari OpenRouter: {result}"}
+
+@app.delete("/chats")
+def reset_chat():
+    global chat_history
+    chat_history = [{"role": "system", "content": system_prompt}]
+    return {"message": "Percakapan berhasil direset ✅"}
 
