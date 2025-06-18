@@ -1,13 +1,14 @@
 const BACKEND_URL = "http://192.168.20.111:8000";
 
 function getSessionId() {
- let sessionId = localStorage.getItem('sessionId');
- if (!sessionId) {
-    sessionId = crypto.randomUUID(); // Generate a new UUID
- localStorage.setItem('sessionId', sessionId);
+  let sessionId = localStorage.getItem('sessionId');
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    localStorage.setItem('sessionId', sessionId);
   }
- return sessionId;
+  return sessionId;
 }
+
 const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
 let recognition;
 if (speechSupported) {
@@ -27,25 +28,25 @@ if (speechSupported) {
   });
 
   recognition.onresult = (event) => {
-    const speechResult = event.results[0][0].transcript;
-    input.value = speechResult;
+    input.value = event.results[0][0].transcript;
     micBtn.classList.remove('listening');
     input.focus();
   };
 
- recognition.onerror = (event) => {
- micBtn.classList.remove('listening');
- let errorMessage = "Terjadi error pada pengenalan suara.";
+  recognition.onerror = (event) => {
+    micBtn.classList.remove('listening');
+    let errorMessage = "Terjadi error pada pengenalan suara.";
     switch (event.error) {
- case 'not-allowed':
+      case 'not-allowed':
         errorMessage = "Mohon izinkan akses mikrofon untuk menggunakan fitur suara.";
- break;
- case 'no-speech':
+        break;
+      case 'no-speech':
         errorMessage = "Tidak ada suara terdeteksi. Mohon coba lagi.";
- break;
+        break;
     }
     tampilkanPesan(`⚠️ ${errorMessage}`, "bot");
   };
+
   recognition.onend = () => micBtn.classList.remove('listening');
 } else {
   document.getElementById('micBtn').style.display = 'none';
@@ -55,11 +56,11 @@ document.getElementById("fileInput").addEventListener("change", (event) => {
   const file = event.target.files[0];
   if (file && file.type !== 'text/plain') {
     alert("Hanya file .txt yang didukung.");
-    event.target.value = ""; // Reset file input
+    event.target.value = "";
   }
 });
 
-const sendButton = document.querySelector('.input-area button:last-child'); // Assuming the last button is Send
+const sendButton = document.querySelector('.input-area button:last-child');
 async function kirim() {
   const input = document.getElementById('pesan');
   const fileInput = document.getElementById('fileInput');
@@ -73,24 +74,21 @@ async function kirim() {
   fileInput.value = "";
 
   let fileText = "";
+  sendButton.disabled = true;
+
   if (file) {
-  sendButton.disabled = true; // Disable send button
-  const reader = new FileReader();
-  reader.onload = async () => {
-    fileText = reader.result;
-
-    // Tambahkan preview file ke chat (nama + ikon)
-    tampilkanPesan(`<strong>📎 ${file.name}</strong>`, "user");
-
+    const reader = new FileReader();
+    reader.onload = async () => {
+      fileText = reader.result;
+      tampilkanPesan(`<strong>📎 ${file.name}</strong>`, "user");
+      await kirimKeBackend(pesan, fileText);
+      sendButton.disabled = false;
+    };
+    reader.readAsText(file);
+  } else {
     await kirimKeBackend(pesan, fileText);
-    sendButton.disabled = false; // Re-enable send button
-  };
-  reader.readAsText(file);
-} else {
-  sendButton.disabled = true; // Disable send button
-  await kirimKeBackend(pesan, fileText);
-}
-
+    sendButton.disabled = false;
+  }
 }
 
 async function kirimKeBackend(message, fileText) {
@@ -104,23 +102,19 @@ async function kirimKeBackend(message, fileText) {
       body: JSON.stringify({ session_id: sessionId, message, file: fileText })
     });
     const data = await res.json();
+    console.log("🔁 Reply dari bot:", data.reply);
     hapusTyping();
     tampilkanPesan(data.reply, "bot");
-  } catch (error) { // Added error parameter
+  } catch (error) {
     hapusTyping();
     tampilkanPesan(`⚠️ Gagal konek ke server atau terjadi error: ${error.message}`, "bot");
   }
 }
 
 function formatPesan(teks) {
-  // Ubah **teks** jadi <strong>
   teks = teks.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-
-  // Bagi baris per baris
   const lines = teks.split('\n');
-  let html = '';
-  let inUl = false;
-  let inOl = false;
+  let html = '', inUl = false, inOl = false;
 
   for (let line of lines) {
     line = line.trim();
@@ -138,23 +132,14 @@ function formatPesan(teks) {
       }
       html += `<li>${line.replace(/^\d+\.\s+/, '')}</li>`;
     } else {
-      if (inUl) {
-        html += '</ul>';
-        inUl = false;
-      }
-      if (inOl) {
-        html += '</ol>';
-        inOl = false;
-      }
-      if (line !== '') {
-        html += `<p>${line}</p>`;
-      }
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (inOl) { html += '</ol>'; inOl = false; }
+      if (line !== '') html += `<p>${line}</p>`;
     }
   }
 
   if (inUl) html += '</ul>';
   if (inOl) html += '</ol>';
-
   return html;
 }
 
@@ -162,7 +147,7 @@ function tampilkanPesan(teks, pengirim) {
   const chatBox = document.getElementById("chat-box");
   const elemen = document.createElement("div");
   elemen.className = pengirim;
-  elemen.innerHTML = formatPesan(teks);
+  elemen.innerHTML = (pengirim === 'bot') ? teks : formatPesan(teks);
   chatBox.appendChild(elemen);
   chatBox.scrollTop = chatBox.scrollHeight;
 }
@@ -197,24 +182,24 @@ document.getElementById("clearChatBtn").addEventListener("click", async () => {
   if (confirm("Yakin mau hapus semua chat?")) {
     const sessionId = getSessionId();
     try {
- await fetch(`${BACKEND_URL}/chats?session_id=${sessionId}`, { method: "DELETE" });
+      await fetch(`${BACKEND_URL}/chats?session_id=${sessionId}`, { method: "DELETE" });
       document.getElementById("chat-box").innerHTML = "";
-    } catch (error) { // Added error parameter
+    } catch (error) {
       tampilkanPesan(`⚠️ Gagal menghapus chat dari server: ${error.message}`, "bot");
     }
   }
 });
+
 window.onload = async () => {
   const sessionId = getSessionId();
-  document.getElementById("chat-box").innerHTML = ""; // Clear existing content before loading history
+  document.getElementById("chat-box").innerHTML = "";
   try {
-    const res = await fetch(`${BACKEND_URL}/chats`); // Corrected URL to use BACKEND_URL
+    const res = await fetch(`${BACKEND_URL}/chats?session_id=${sessionId}`);
     const data = await res.json();
     data.forEach(chat => {
-      tampilkanPesan(chat.user, "user");
-      tampilkanPesan(chat.bot, "bot");
+      tampilkanPesan(chat.content, chat.role);
     });
-  } catch {
-    tampilkanPesan("⚠️ Gagal memuat riwayat chat dari server.", "bot");
-  } // Added error parameter for more informative message? (Optional based on preference)
+  } catch (error) {
+    tampilkanPesan(`⚠️ Gagal memuat riwayat chat dari server: ${error.message}`, "bot");
+  }
 };
