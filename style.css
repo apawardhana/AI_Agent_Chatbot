@@ -23,7 +23,7 @@ body {
 
 .sidebar h2 {
   margin-top: 0;
-  color: #2984b1;
+  color: #2a3bd6;
   font-size: 22px;
   font-weight: bold;
 }
@@ -190,6 +190,11 @@ body {
 
   .chat-box {
     background-size: 100px;
+    padding: 10px 20px;
+  }
+  
+  .sidebar img {
+    margin-right: 15px;
   }
 
   .input-area {
