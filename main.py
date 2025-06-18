@@ -40,7 +40,7 @@ Base.metadata.create_all(bind=engine)
 # 📄 FAQ
 faq_df = pd.read_excel("data/FAQ.xlsx")
 faq_df.columns = faq_df.columns.str.strip().str.upper()
-faq_df = faq_df.head(20)
+faq_df = faq_df.head(100)
 faq_text = "\n".join(
     f"Q: {row['PERTANYAAN']}\nA: {row['JAWABAN']}" for _, row in faq_df.iterrows()
 )
