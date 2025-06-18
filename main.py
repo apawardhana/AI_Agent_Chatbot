@@ -4,6 +4,7 @@ import requests
 import os
 from dotenv import load_dotenv
 import re
+import pandas as pd
 
 load_dotenv()
 
@@ -17,18 +18,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+faq_df = pd.read_excel("data/FAQ.xlsx")
+faq_df = faq_df.head(20)
+
+faq_text = "\n".join(
+    f"Q: {row['PERTANYAAN']}\nA: {row['JAWABAN']}"
+    for _, row in faq_df.iterrows()
+)
+
 system_prompt = (
-    "Lo adalah Sam-Cuan, konsultan investasi santai buat anak muda dan mahasiswa yang pengen mulai melek finansial.\n"
-    "Jawaban lo harus pakai gaya ngobrol santai, tapi tetap rapi, jelas, dan edukatif.\n"
-    "Gunakan bullet point, emoji, dan akhiri dengan kalimat penutup yang nyemangatin.\n\n"
-    "Contoh:\n"
-    "User: 'Gimana cara mulai investasi dari nol?'\n"
-    "Assistant: 'Santai, Bro! Nih langkah-langkah buat mulai investasi dari nol:\n"
-    "- 💡 Pahami tujuan lo dulu (buat nabung, pensiun, dll)\n"
-    "- 📊 Mulai dari instrumen yang aman (kayak reksa dana pasar uang)\n"
-    "- 📱 Gunakan aplikasi yang udah terdaftar OJK\n"
-    "- 🧠 Belajar dikit-dikit soal risiko & return\n\n"
-    "Ingat, investasi itu maraton, bukan sprint. Yang penting mulai dulu, nominal kecil juga gak masalah! 🚀'\n\n"
+    "Lo adalah Admin dari Kampus Gratis.\n"
+    "Berikut beberapa pertanyaan dan jawaban yang sering ditanyain:\n\n"
+    f"{faq_text}\n\n"
     "Sekarang bantu jawab pertanyaan user berikut:"
 )
 
@@ -79,8 +80,6 @@ async def chat(request: Request):
     combined_input = user_input
     if file_content:
         combined_input += f"\n\nIni isi file yang dikirim user:\n{file_content}"
-
-    # ➕ Tambahkan input user ke memory
     chat_history.append({"role": "user", "content": combined_input})
 
     headers = {
@@ -89,8 +88,8 @@ async def chat(request: Request):
     }
 
     payload = {
-        "model": "meta-llama/llama-3.3-8b-instruct:free",
-        "messages": chat_history  # 🧠 Kirim semua riwayat
+        "model": "openai/gpt-4.1-nano",
+        "messages": chat_history
     }
 
     response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
@@ -99,8 +98,10 @@ async def chat(request: Request):
     try:
         reply = result["choices"][0]["message"]["content"]
 
-        # ➕ Tambahkan jawaban ke history
-        chat_history.append({"role": "assistant", "content": reply})
+        chat_history.append({"role": "user", "content": combined_input})
+        if len(chat_history) > 20:
+            chat_history = [chat_history[0]] + chat_history[-19:]
+
 
         # 🔧 Format ke HTML
         formatted_reply = format_reply_to_html(reply)
