@@ -1,13 +1,22 @@
 const BACKEND_URL = "http://192.168.20.111:8000";
 
 function getSessionId() {
-  let sessionId = localStorage.getItem('sessionId');
+  const sessionKey = "session_id";
+  let sessionId = localStorage.getItem(sessionKey);
+
   if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    localStorage.setItem('sessionId', sessionId);
+    // Fallback UUID generator (v4 style)
+    sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+    localStorage.setItem(sessionKey, sessionId);
   }
+
   return sessionId;
 }
+
 
 const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
 let recognition;
@@ -61,6 +70,7 @@ document.getElementById("fileInput").addEventListener("change", (event) => {
 });
 
 const sendButton = document.querySelector('.input-area button:last-child');
+
 async function kirim() {
   const input = document.getElementById('pesan');
   const fileInput = document.getElementById('fileInput');
@@ -144,6 +154,7 @@ function formatPesan(teks) {
 }
 
 function tampilkanPesan(teks, pengirim) {
+  console.log("📨", pengirim, teks);
   const chatBox = document.getElementById("chat-box");
   const elemen = document.createElement("div");
   elemen.className = pengirim;
@@ -197,7 +208,8 @@ window.onload = async () => {
     const res = await fetch(`${BACKEND_URL}/chats?session_id=${sessionId}`);
     const data = await res.json();
     data.forEach(chat => {
-      tampilkanPesan(chat.content, chat.role);
+      const pengirim = (chat.role === 'assistant') ? 'bot' : 'user';
+      tampilkanPesan(chat.content, pengirim);
     });
   } catch (error) {
     tampilkanPesan(`⚠️ Gagal memuat riwayat chat dari server: ${error.message}`, "bot");

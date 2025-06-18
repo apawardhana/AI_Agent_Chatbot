@@ -6,10 +6,9 @@ from sqlalchemy.orm import sessionmaker, Session
 import requests
 import os
 from dotenv import load_dotenv
-from datetime import datetime, timezone, date
-import re
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
+from datetime import datetime, timezone
 import pandas as pd
+import re
 
 # 🔧 Load ENV
 load_dotenv()
@@ -20,6 +19,13 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
@@ -34,17 +40,9 @@ Base.metadata.create_all(bind=engine)
 # 📄 FAQ
 faq_df = pd.read_excel("data/FAQ.xlsx")
 faq_df.columns = faq_df.columns.str.strip().str.upper()
-faq_text = "\n".join(
-    f"Q: {row['PERTANYAAN']}\nA: {row['JAWABAN']}"
-    for _, row in faq_df.head(50).iterrows()
-)
-
-faq_df = pd.read_excel("data/FAQ.xlsx")
 faq_df = faq_df.head(20)
-
 faq_text = "\n".join(
-    f"Q: {row['PERTANYAAN']}\nA: {row['JAWABAN']}"
-    for _, row in faq_df.iterrows()
+    f"Q: {row['PERTANYAAN']}\nA: {row['JAWABAN']}" for _, row in faq_df.iterrows()
 )
 
 system_prompt = (
@@ -53,19 +51,6 @@ system_prompt = (
     f"{faq_text}\n\n"
     "Sekarang bantu jawab pertanyaan user berikut:"
 )
-
-
-# 🧠 Memory percakapan
-# chat_history = [{"role": "system", "content": system_prompt}] # Removed global memory
-
-def chat_message_to_dict(message: ChatMessage):
-    return {
-        "id": message.id,
- "session_id": message.session_id,
- "role": message.role,
- "content": message.content,
- "timestamp": message.timestamp.isoformat() if isinstance(message.timestamp, (datetime, date)) else None # Handle datetime object
-    }
 
 # 🔧 Format teks ke HTML
 def format_reply_to_html(text):
@@ -112,29 +97,17 @@ async def chat(request: Request, db: Session = Depends(get_db)):
 
     user_input = data.get("message", "")
     file_content = data.get("file", "")
+    combined_input = user_input + (f"\n\nIsi file:\n{file_content}" if file_content else "")
 
-    combined_input = user_input
-    if file_content:
-        combined_input += f"\n\nIni isi file yang dikirim user:\n{file_content}"
-
-    # ➕ Tambahkan input user ke memory
-    chat_history.append({"role": "user", "content": combined_input}) # Removed global memory
-    user_message = ChatMessage(session_id=session_id, role="user", content=combined_input)
-    db.add(user_message)
+    # Simpan user message
+    user_msg = ChatMessage(session_id=session_id, role="user", content=combined_input)
+    db.add(user_msg)
     db.commit()
-    db.refresh(user_message)
 
-    # Fetch previous messages for this session to send as context
-    previous_messages = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.timestamp).all()
-    messages_for_model = [{"role": msg.role, "content": msg.content} for msg in previous_messages]
-
- # Add the system prompt at the beginning
+    # Ambil semua histori chat
+    messages = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.timestamp).all()
+    messages_for_model = [{"role": msg.role, "content": msg.content} for msg in messages]
     messages_for_model.insert(0, {"role": "system", "content": system_prompt})
-
- # Ensure the last message is the current user message (important for conversational models)
- # This handles the case where file content was added to combined_input
-    if messages_for_model[-1]["content"] != combined_input:
-        messages_for_model.append({"role": "user", "content": combined_input})
 
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -143,35 +116,28 @@ async def chat(request: Request, db: Session = Depends(get_db)):
 
     payload = {
         "model": "meta-llama/llama-3.3-8b-instruct:free",
-        "messages": chat_history
+        "messages": messages_for_model
     }
 
-    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
-    result = response.json()
-
     try:
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
+        result = response.json()
         reply = result["choices"][0]["message"]["content"]
-        db.add(ChatMessage(session_id=session_id, role="assistant", content=reply))
+
+        # Simpan reply ke DB
+        bot_msg = ChatMessage(session_id=session_id, role="assistant", content=reply)
+        db.add(bot_msg)
         db.commit()
+
         return {"reply": format_reply_to_html(reply)}
 
     except Exception as e:
-        return {"reply": f"Maaf, error dari OpenRouter: {result}"}
+        return {"reply": f"⚠️ Gagal dapetin jawaban dari OpenRouter: {e}"}
 
 @app.get("/chats")
 def get_chats(session_id: str, db: Session = Depends(get_db)):
-    messages = db.query(ChatMessage)\
-        .filter(ChatMessage.session_id == session_id)\
-        .order_by(ChatMessage.timestamp)\
-        .all()
-    return [
-        {
-            "role": m.role,
-            "content": m.content,
-            "timestamp": m.timestamp.isoformat()
-        }
-        for m in messages
-    ]
+    messages = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.timestamp).all()
+    return [{"role": m.role, "content": m.content, "timestamp": m.timestamp.isoformat()} for m in messages]
 
 @app.delete("/chats")
 def reset_chat(session_id: str, db: Session = Depends(get_db)):
