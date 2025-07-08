@@ -115,7 +115,7 @@ async def chat(request: Request, db: Session = Depends(get_db)):
     }
 
     payload = {
-        "model": "meta-llama/llama-3.3-8b-instruct:free",
+        "model": "meta-llama/llama-4-maverick:free",
         "messages": messages_for_model
     }
 

@@ -6,25 +6,60 @@
   <title>M-Know Chatbot</title>
   <link rel="icon" type="image/x-icon" href="assets/logo_KG_Sidebar.png" />
   <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="container">
     <aside class="sidebar">
-      <img src="assets/logo_KG_Sidebar.png" alt="Logo Sam-Cuan" style="width: 100px; margin-bottom: 10px;" />
-      <h2>Chatbot</h2>
-      <button id="clearChatBtn">🗑 Hapus Chat</button>
+      <div class="sidebar-header">
+        <div class="logo-container">
+        <img src="assets/logo_KG_Sidebar.png" alt="Logo" class="sidebar-logo" />
+        <h2>M-Know Chatbot</h2>
+      </div>
+      <button id="clearChatBtn" class="sidebar-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h18"></path>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>New Chat</span>
+      </button>
     </aside>
 
     <main class="chat-area">
-      <div id="chat-box" class="chat-box"></div>
+      <div id="chat-box" class="chat-box">
+      </div>
 
-      <div class="input-area">
-        <button id="attachBtn">➕</button>
-        <input type="file" id="fileInput" style="display:none" />
-        <input type="text" id="pesan" placeholder="Tulis pesan..." autocomplete="off" />
-        <button type= "button" onclick="kirim()" style="font-family: poppins;">Kirim</button>
-        <button id="micBtn" style="display:none">🎤</button>
+      <div class="input-container">
+        <div class="input-area">
+          <input type="file" id="fileInput" style="display:none" />
+          <div class="input-wrapper">
+            <input type="text" id="pesan" placeholder="Message M-Know Chatbot..." autocomplete="off" />
+            <div class="input-buttons">
+              <button id="attachBtn" class="icon-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
+              </button>
+              <button id="micBtn" class="icon-button" style="display:none">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+              </button>
+              <button type="button" onclick="kirim()" class="send-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="disclaimer">
+          M-Know Chatbot can make mistakes. Consider checking important information.
+        </div>
       </div>
     </main>
   </div>

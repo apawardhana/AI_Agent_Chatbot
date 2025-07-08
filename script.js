@@ -1,11 +1,10 @@
-const BACKEND_URL = "http://192.168.20.111:8000";
+const BACKEND_URL = "http://localhost:8000";
 
 function getSessionId() {
   const sessionKey = "session_id";
   let sessionId = localStorage.getItem(sessionKey);
 
   if (!sessionId) {
-    // Fallback UUID generator (v4 style)
     sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0;
       const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -17,7 +16,7 @@ function getSessionId() {
   return sessionId;
 }
 
-
+// Speech recognition setup
 const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
 let recognition;
 if (speechSupported) {
@@ -33,17 +32,17 @@ if (speechSupported) {
 
   micBtn.addEventListener('click', () => {
     recognition.start();
-    micBtn.classList.add('listening');
+    micBtn.classList.add('active');
   });
 
   recognition.onresult = (event) => {
     input.value = event.results[0][0].transcript;
-    micBtn.classList.remove('listening');
+    micBtn.classList.remove('active');
     input.focus();
   };
 
   recognition.onerror = (event) => {
-    micBtn.classList.remove('listening');
+    micBtn.classList.remove('active');
     let errorMessage = "Terjadi error pada pengenalan suara.";
     switch (event.error) {
       case 'not-allowed':
@@ -56,11 +55,10 @@ if (speechSupported) {
     tampilkanPesan(`⚠️ ${errorMessage}`, "bot");
   };
 
-  recognition.onend = () => micBtn.classList.remove('listening');
-} else {
-  document.getElementById('micBtn').style.display = 'none';
+  recognition.onend = () => micBtn.classList.remove('active');
 }
 
+// File input handling
 document.getElementById("fileInput").addEventListener("change", (event) => {
   const file = event.target.files[0];
   if (file && file.type !== 'text/plain') {
@@ -69,8 +67,7 @@ document.getElementById("fileInput").addEventListener("change", (event) => {
   }
 });
 
-const sendButton = document.querySelector('.input-area button:last-child');
-
+// Send message function
 async function kirim() {
   const input = document.getElementById('pesan');
   const fileInput = document.getElementById('fileInput');
@@ -84,6 +81,7 @@ async function kirim() {
   fileInput.value = "";
 
   let fileText = "";
+  const sendButton = document.querySelector('.send-button');
   sendButton.disabled = true;
 
   if (file) {
@@ -112,7 +110,6 @@ async function kirimKeBackend(message, fileText) {
       body: JSON.stringify({ session_id: sessionId, message, file: fileText })
     });
     const data = await res.json();
-    console.log("🔁 Reply dari bot:", data.reply);
     hapusTyping();
     tampilkanPesan(data.reply, "bot");
   } catch (error) {
@@ -154,7 +151,6 @@ function formatPesan(teks) {
 }
 
 function tampilkanPesan(teks, pengirim) {
-  console.log("📨", pengirim, teks);
   const chatBox = document.getElementById("chat-box");
   const elemen = document.createElement("div");
   elemen.className = pengirim;
@@ -178,6 +174,7 @@ function hapusTyping() {
   if (bubble) bubble.remove();
 }
 
+// Event listeners
 document.getElementById("attachBtn").addEventListener("click", () => {
   document.getElementById("fileInput").click();
 });
@@ -201,6 +198,7 @@ document.getElementById("clearChatBtn").addEventListener("click", async () => {
   }
 });
 
+// Load chat history on page load
 window.onload = async () => {
   const sessionId = getSessionId();
   document.getElementById("chat-box").innerHTML = "";
